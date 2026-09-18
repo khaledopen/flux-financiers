@@ -1,0 +1,6 @@
+import bcrypt from 'bcrypt'; import {query} from '../config/db.js'; import * as auth from '../services/authService.js';
+export const register=async(req,res,next)=>{try{res.status(201).json(await auth.register(req.body));}catch(e){next(e)}};
+export const login=async(req,res,next)=>{try{res.json(await auth.login(req.body.email,req.body.password));}catch(e){next(e)}};
+export const me=async(req,res,next)=>{try{const {rows:[u]}=await query('SELECT id,nom,email,created_at FROM users WHERE id=$1',[req.user.id]);res.json(u);}catch(e){next(e)}};
+export const profile=async(req,res,next)=>{try{const {rows:[u]}=await query('UPDATE users SET nom=$1,email=LOWER($2),updated_at=NOW() WHERE id=$3 RETURNING id,nom,email',[req.body.nom,req.body.email,req.user.id]);res.json(u);}catch(e){next(e)}};
+export const password=async(req,res,next)=>{try{const {rows:[u]}=await query('SELECT password_hash FROM users WHERE id=$1',[req.user.id]);if(!await bcrypt.compare(req.body.currentPassword,u.password_hash))return res.status(400).json({message:'Mot de passe actuel incorrect.'});await query('UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2',[await bcrypt.hash(req.body.password,12),req.user.id]);res.json({message:'Mot de passe modifié.'});}catch(e){next(e)}};
